@@ -1,0 +1,176 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: snoop
+  labels:
+    app: grafana
+data:
+  snoop-logs.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "links": [],
+      "panels": [
+        {
+          "title": "Log Volume by Service",
+          "type": "timeseries",
+          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
+          "datasource": { "type": "loki", "uid": "" },
+          "targets": [
+            {
+              "expr": "sum(rate({namespace=\"snoop\", app=~\"$service\"} [$__interval])) by (app)",
+              "legendFormat": "{{app}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "fillOpacity": 30,
+                "lineWidth": 1,
+                "stacking": { "mode": "normal" },
+                "drawStyle": "bars",
+                "barAlignment": 0
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi" },
+            "legend": { "displayMode": "list", "placement": "bottom" }
+          }
+        },
+        {
+          "title": "Error Rate by Service",
+          "type": "timeseries",
+          "gridPos": { "h": 6, "w": 12, "x": 0, "y": 6 },
+          "datasource": { "type": "loki", "uid": "" },
+          "targets": [
+            {
+              "expr": "sum(rate({namespace=\"snoop\", app=~\"$service\"} |~ \"(?i)error|exception|fatal|panic\" [$__interval])) by (app)",
+              "legendFormat": "{{app}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 2,
+                "drawStyle": "line",
+                "pointSize": 5
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi" },
+            "legend": { "displayMode": "list", "placement": "bottom" }
+          }
+        },
+        {
+          "title": "Warning Rate by Service",
+          "type": "timeseries",
+          "gridPos": { "h": 6, "w": 12, "x": 12, "y": 6 },
+          "datasource": { "type": "loki", "uid": "" },
+          "targets": [
+            {
+              "expr": "sum(rate({namespace=\"snoop\", app=~\"$service\"} |~ \"(?i)warn\" [$__interval])) by (app)",
+              "legendFormat": "{{app}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "fillOpacity": 20,
+                "lineWidth": 2,
+                "drawStyle": "line",
+                "pointSize": 5
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": { "mode": "multi" },
+            "legend": { "displayMode": "list", "placement": "bottom" }
+          }
+        },
+        {
+          "title": "Errors & Exceptions",
+          "type": "logs",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+          "datasource": { "type": "loki", "uid": "" },
+          "targets": [
+            {
+              "expr": "{namespace=\"snoop\", app=~\"$service\"} |~ \"(?i)error|exception|fatal|panic\"",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "showTime": true,
+            "showLabels": true,
+            "showCommonLabels": false,
+            "wrapLogMessage": true,
+            "prettifyLogMessage": false,
+            "enableLogDetails": true,
+            "sortOrder": "Descending",
+            "dedupStrategy": "none"
+          }
+        },
+        {
+          "title": "Live Log Stream",
+          "type": "logs",
+          "gridPos": { "h": 12, "w": 24, "x": 0, "y": 20 },
+          "datasource": { "type": "loki", "uid": "" },
+          "targets": [
+            {
+              "expr": "{namespace=\"snoop\", app=~\"$service\"}",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "showTime": true,
+            "showLabels": true,
+            "showCommonLabels": false,
+            "wrapLogMessage": true,
+            "prettifyLogMessage": false,
+            "enableLogDetails": true,
+            "sortOrder": "Descending",
+            "dedupStrategy": "none"
+          }
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": ["snoop", "loki", "logs"],
+      "templating": {
+        "list": [
+          {
+            "name": "service",
+            "type": "query",
+            "datasource": { "type": "loki", "uid": "" },
+            "query": { "label": "app", "stream": "{namespace=\"snoop\"}", "type": 1 },
+            "current": { "selected": true, "text": "All", "value": "$__all" },
+            "includeAll": true,
+            "allValue": ".+",
+            "multi": true,
+            "refresh": 2,
+            "sort": 1
+          }
+        ]
+      },
+      "time": { "from": "now-1h", "to": "now" },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Snoop Logs",
+      "uid": "snoop-logs-overview"
+    }

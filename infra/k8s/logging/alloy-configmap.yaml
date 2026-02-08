@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-config
+  namespace: snoop
+  labels:
+    app: alloy
+data:
+  config.alloy: |
+    // Discover pods in the snoop namespace
+    discovery.kubernetes "pods" {
+      role = "pod"
+      namespaces {
+        names = ["snoop"]
+      }
+    }
+
+    // Filter to only running containers and attach metadata labels
+    discovery.relabel "pod_logs" {
+      targets = discovery.kubernetes.pods.targets
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_phase"]
+        regex         = "Succeeded|Failed"
+        action        = "drop"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_namespace"]
+        target_label  = "namespace"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_name"]
+        target_label  = "pod"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_container_name"]
+        target_label  = "container"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_app"]
+        target_label  = "app"
+      }
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_label_tier"]
+        target_label  = "tier"
+      }
+    }
+
+    // Read logs from discovered pod log files on the node
+    loki.source.kubernetes "pod_logs" {
+      targets    = discovery.relabel.pod_logs.output
+      forward_to = [loki.process.pod_logs.receiver]
+    }
+
+    // Process: add static labels
+    loki.process "pod_logs" {
+      stage.static_labels {
+        values = {
+          cluster = "snoop-dev",
+        }
+      }
+      forward_to = [loki.write.default.receiver]
+    }
+
+    // Ship logs to Loki
+    loki.write "default" {
+      endpoint {
+        url = "http://loki.snoop.svc.cluster.local:3100/loki/api/v1/push"
+      }
+    }

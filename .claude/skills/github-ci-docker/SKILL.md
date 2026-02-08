@@ -10,10 +10,10 @@ The Snoop repo contains two services that need Docker images built and pushed:
 
 | Service | Dockerfile | Build Context | Docker Hub Image |
 |---------|-----------|---------------|------------------|
-| **backend** | `server/Dockerfile` | `server/` | `doublelayer/snoop-backend` |
-| **frontend** | `client/Dockerfile` | `client/` | `doublelayer/snoop-frontend` |
+| **backend** | `server/Dockerfile` | `server/` | `petdog/snoop-backend` |
+| **frontend** | `client/Dockerfile` | `client/` | `petdog/snoop-frontend` |
 
-**Docker Hub org**: `doublelayer`
+**Docker Hub org**: `petdog`
 
 ---
 
@@ -23,7 +23,7 @@ These MUST be configured in the repo under **Settings > Secrets and variables > 
 
 | Secret | Description |
 |--------|-------------|
-| `DOCKERHUB_USERNAME` | Docker Hub username with push access to the `doublelayer` org |
+| `DOCKERHUB_USERNAME` | Docker Hub username with push access to the `petdog` org |
 | `DOCKERHUB_TOKEN` | Docker Hub access token (not password) - generate at https://hub.docker.com/settings/security |
 
 **Setting up Docker Hub access tokens**:
@@ -87,8 +87,9 @@ jobs:
           context: server
           file: ./server/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
-            doublelayer/snoop-backend:${{ steps.vars.outputs.TAG }}
+            petdog/snoop-backend:${{ steps.vars.outputs.TAG }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
@@ -99,8 +100,9 @@ jobs:
           context: client
           file: ./client/Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
-            doublelayer/snoop-frontend:${{ steps.vars.outputs.TAG }}
+            petdog/snoop-frontend:${{ steps.vars.outputs.TAG }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
 ```
@@ -109,9 +111,9 @@ jobs:
 
 | Trigger | Image Tag | Example |
 |---------|-----------|---------|
-| Push to `main` | `latest` | `doublelayer/snoop-backend:latest` |
-| Push tag `v1.2.3` | `v1.2.3` | `doublelayer/snoop-backend:v1.2.3` |
-| Push tag `1.0.0` | `1.0.0` | `doublelayer/snoop-backend:1.0.0` |
+| Push to `main` | `latest` | `petdog/snoop-backend:latest` |
+| Push tag `v1.2.3` | `v1.2.3` | `petdog/snoop-backend:v1.2.3` |
+| Push tag `1.0.0` | `1.0.0` | `petdog/snoop-backend:1.0.0` |
 
 ### How it Works
 
@@ -120,8 +122,8 @@ jobs:
 3. **Buildx** - Docker's extended builder with cache support
 4. **Login** - authenticates to Docker Hub using repo secrets
 5. **Tag detection** - if triggered by a git tag, uses that as the image tag; otherwise `latest`
-6. **Build backend** - multi-stage build from `server/Dockerfile`, pushes to `doublelayer/snoop-backend`
-7. **Build frontend** - multi-stage build from `client/Dockerfile`, pushes to `doublelayer/snoop-frontend`
+6. **Build backend** - multi-stage build from `server/Dockerfile`, pushes to `petdog/snoop-backend`
+7. **Build frontend** - multi-stage build from `client/Dockerfile`, pushes to `petdog/snoop-frontend`
 
 Both builds use **GitHub Actions cache** (`type=gha`) scoped per service, so unchanged layers are reused across runs.
 
@@ -175,23 +177,9 @@ jobs:
 
 ## Multi-Platform Builds
 
-To build for both `linux/amd64` and `linux/arm64` (e.g., for Apple Silicon nodes), add the `platforms` key:
+**Rule**: All images MUST be built for both `linux/amd64` and `linux/arm64` using the `platforms` key. This is required because the dev environment runs on Apple Silicon (ARM64).
 
-```yaml
-      - name: Build and Push Backend
-        uses: docker/build-push-action@v5
-        with:
-          context: server
-          file: ./server/Dockerfile
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: |
-            doublelayer/snoop-backend:${{ steps.vars.outputs.TAG }}
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,mode=max,scope=backend
-```
-
-**Note**: The backend installs Chromium via `apt-get`, so cross-platform builds work but take longer (~10-15 min vs ~3-5 min for amd64 only). Only enable if you need arm64.
+QEMU + Buildx handle cross-compilation automatically. The backend build takes longer (~10-15 min) due to Chromium's `apt-get` install under emulation, but this is expected.
 
 ---
 
@@ -204,7 +192,7 @@ For richer tag strategies (semver, SHA, branch name), replace the manual tag ste
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: doublelayer/snoop-backend
+          images: petdog/snoop-backend
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -224,10 +212,10 @@ For richer tag strategies (semver, SHA, branch name), replace the manual tag ste
 ```
 
 This produces tags like:
-- `doublelayer/snoop-backend:main` (branch push)
-- `doublelayer/snoop-backend:1.2.3` (tag `v1.2.3`)
-- `doublelayer/snoop-backend:1.2` (tag `v1.2.3`)
-- `doublelayer/snoop-backend:abc1234` (commit SHA)
+- `petdog/snoop-backend:main` (branch push)
+- `petdog/snoop-backend:1.2.3` (tag `v1.2.3`)
+- `petdog/snoop-backend:1.2` (tag `v1.2.3`)
+- `petdog/snoop-backend:abc1234` (commit SHA)
 
 ---
 
@@ -237,16 +225,16 @@ After images are pushed, the Kubernetes manifests (see kubernetes-infrastructure
 
 ```yaml
 # Backend deployment
-image: doublelayer/snoop-backend:latest   # or specific tag
+image: petdog/snoop-backend:latest   # or specific tag
 
 # Frontend deployment
-image: doublelayer/snoop-frontend:latest  # or specific tag
+image: petdog/snoop-frontend:latest  # or specific tag
 ```
 
 To deploy a specific version:
 ```bash
-kubectl set image deployment/backend backend=doublelayer/snoop-backend:v1.2.3 -n snoop
-kubectl set image deployment/frontend frontend=doublelayer/snoop-frontend:v1.2.3 -n snoop
+kubectl set image deployment/backend backend=petdog/snoop-backend:v1.2.3 -n snoop
+kubectl set image deployment/frontend frontend=petdog/snoop-frontend:v1.2.3 -n snoop
 ```
 
 ---
@@ -264,13 +252,14 @@ When adding a new Dockerized service to Snoop:
        context: <service-dir>
        file: ./<service-dir>/Dockerfile
        push: true
+       platforms: linux/amd64,linux/arm64
        tags: |
-         doublelayer/snoop-<service-name>:${{ steps.vars.outputs.TAG }}
+         petdog/snoop-<service-name>:${{ steps.vars.outputs.TAG }}
        cache-from: type=gha,scope=<service-name>
        cache-to: type=gha,mode=max,scope=<service-name>
    ```
 3. Add the same entry to the PR workflow matrix
-4. Update the Kubernetes deployment to use `doublelayer/snoop-<service-name>`
+4. Update the Kubernetes deployment to use `petdog/snoop-<service-name>`
 
 ---
 
@@ -309,7 +298,7 @@ docker build -t snoop-frontend:test -f client/Dockerfile client/
 When working on CI/CD for Snoop:
 
 - **Workflow files go in `.github/workflows/`** in the snoop repo root
-- **Image names follow the pattern** `doublelayer/snoop-<service>`
+- **Image names follow the pattern** `petdog/snoop-<service>`
 - **Always use `docker/build-push-action@v5`** with Buildx and GHA cache
 - **Never hardcode credentials** - always use `${{ secrets.DOCKERHUB_USERNAME }}` and `${{ secrets.DOCKERHUB_TOKEN }}`
 - **PR workflows should build but NOT push** (`push: false`)

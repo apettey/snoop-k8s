@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: snoop
+  labels:
+    app: frontend
+data:
+  APP_PREFIX: "SNOOP_"
+  ASSET_DIR: "/dist"
+  SNOOP_IS_DEMO: "false"
+  SNOOP_TRACKING_ENABLED: "false"
+
+  # These point to external URLs users access from browser
+  # Override with actual minikube IP or ingress URL
+  SNOOP_API_URL: "http://localhost:30100/api"
+  SNOOP_WS_URL: "http://localhost:30100"

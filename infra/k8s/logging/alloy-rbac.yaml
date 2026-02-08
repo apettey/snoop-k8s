@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alloy
+  namespace: snoop
+  labels:
+    app: alloy
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: alloy-logs
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - nodes
+      - nodes/proxy
+      - namespaces
+      - endpoints
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: alloy-logs
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: alloy-logs
+subjects:
+  - kind: ServiceAccount
+    name: alloy
+    namespace: snoop

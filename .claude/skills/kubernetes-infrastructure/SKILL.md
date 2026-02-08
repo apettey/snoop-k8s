@@ -355,7 +355,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: snoop/backend:latest
+          image: petdog/snoop-backend:latest
           ports:
             - containerPort: 5000
           envFrom:
@@ -415,7 +415,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: snoop/frontend:latest
+          image: petdog/snoop-frontend:latest
           ports:
             - containerPort: 3000
           envFrom:

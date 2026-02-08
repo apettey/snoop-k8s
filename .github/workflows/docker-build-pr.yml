@@ -1,0 +1,38 @@
+name: docker-build-pr
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+    paths:
+      - 'snoop/server/**'
+      - 'snoop/client/**'
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: backend
+            context: snoop/server
+            dockerfile: snoop/server/Dockerfile
+          - name: frontend
+            context: snoop/client
+            dockerfile: snoop/client/Dockerfile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.name }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.name }}
