@@ -1,0 +1,3 @@
+[submodule "snoop"]
+	path = snoop
+	url = https://github.com/code-by-fh/snoop.git
